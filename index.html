@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>サイバーパンク ロボットランナー</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>ロボットランナー</h1>
+            <div class="score">スコア: <span id="score">0</span></div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        
+        <div class="game-controls">
+            <div class="move-controls">
+                <button id="leftBtn" class="control-btn move-btn">←</button>
+                <button id="rightBtn" class="control-btn move-btn">→</button>
+            </div>
+            <div class="action-controls">
+                <button id="jumpBtn" class="control-btn">ジャンプ</button>
+                <button id="slideBtn" class="control-btn">スライド</button>
+            </div>
+        </div>
+        
+        <div class="game-info">
+            <p>🤖 ロボットを操作して障害物を避けよう！</p>
+            <p>💻 矢印キーで移動、スペースでジャンプ、↓でスライド</p>
+            <p>📱 スマホでは画面のボタンをタップしてね</p>
+        </div>
+        
+        <div id="gameOver" class="game-over hidden">
+            <h2>ゲームオーバー</h2>
+            <p>最終スコア: <span id="finalScore">0</span></p>
+            <button id="restartBtn" class="restart-btn">もう一度プレイ</button>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
