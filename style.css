@@ -217,14 +217,9 @@ body {
     display: none;
 }
 
-/* スマホ対応 */
+/* スマホ全般の縦向き時の調整 (max-width: 768px を含む) */
 @media (max-width: 768px) {
-    .game-container {
-        padding: 10px;
-        /* 画面全体を少し縮小して、より多くの情報が見えるようにする */
-        transform: scale(0.9); 
-        transform-origin: center center; /* 中央を基準に拡大縮小 */
-    }
+    /* transform: scale(0.9) は削除しました */
     
     .game-header {
         flex-direction: column;
@@ -243,7 +238,7 @@ body {
     #gameCanvas {
         width: 100%;
         max-width: 400px;
-        height: 200px;
+        height: 200px; /* 縦向きの時のデフォルト高さを維持 */
     }
     
     .game-controls {
@@ -277,6 +272,108 @@ body {
     
     .game-over p {
         font-size: 1.2rem;
+    }
+}
+
+/* 横向きスマホ対応 (768px以下の横幅で、かつ横向きの場合) */
+@media screen and (orientation: landscape) and (max-width: 768px) {
+    body {
+        /* 横向きスマホでは、画面全体を埋めるように調整 */
+        padding: 0;
+        margin: 0;
+        min-height: 100vh;
+        width: 100vw;
+        display: flex;
+        flex-direction: column; /* 縦方向に要素を並べる */
+        justify-content: flex-start; /* 上から配置 */
+        align-items: center;
+        overflow-y: auto; /* 必要に応じて縦スクロールを許可 */
+        overflow-x: hidden; /* 横方向のスクロールは禁止 */
+    }
+
+    .game-container {
+        /* 横向きスマホでは、パディングを減らすか調整してスペースを確保 */
+        padding: 10px;
+        width: 100%; /* 横幅いっぱいに */
+        max-width: none; /* 最大幅の制限を解除 */
+        display: flex; /* Flexboxで子要素を配置 */
+        flex-direction: column; /* 縦方向に要素を並べる */
+        align-items: center; /* 中央揃え */
+        justify-content: flex-start; /* 上から配置 */
+    }
+
+    .game-header {
+        width: 95%; /* ヘッダーの幅を調整 */
+        flex-direction: row; /* 横並びに戻す */
+        justify-content: space-between; /* 両端揃え */
+        align-items: center;
+        margin-bottom: 5px; /* マージンを減らす */
+        padding: 5px 10px; /* パディングを減らす */
+    }
+
+    .game-header h1 {
+        font-size: 1.2rem; /* ヘッダーの文字サイズをさらに小さく */
+    }
+
+    .score {
+        font-size: 0.9rem; /* スコアの文字サイズをさらに小さく */
+        line-height: 1.2;
+    }
+
+    #gameCanvas {
+        width: 95vw; /* ビューポートの横幅の95%を使用 */
+        max-width: 600px; /* ある程度の最大幅を設定（より広いスマホ向け） */
+        height: auto; /* 高さ自動調整 */
+        aspect-ratio: 2 / 1; /* アスペクト比を2:1に固定 (Canvasのwidth:heightと同じ) */
+        margin: 5px auto; /* 上下のマージンを調整 */
+    }
+
+    .game-controls {
+        flex-direction: row; /* コントロールボタンを横並びにする */
+        gap: 10px; /* ボタン間のスペースを調整 */
+        margin: 5px 0 10px 0; /* マージンを調整 */
+        padding: 0 10px;
+        width: 95%; /* 幅を調整 */
+        justify-content: center; /* 中央に配置 */
+    }
+
+    .move-controls, .action-controls {
+        gap: 5px; /* 各グループ内のボタン間のスペースを調整 */
+    }
+
+    .control-btn {
+        font-size: 0.8rem; /* ボタンの文字サイズを小さく */
+        padding: 8px 15px; /* ボタンのパディングを小さく */
+        border-radius: 10px; /* 角丸を小さく */
+    }
+
+    .move-btn {
+        font-size: 1rem; /* 矢印ボタンは少し大きめ */
+        padding: 8px 10px;
+    }
+
+    .game-info {
+        font-size: 0.7rem; /* 情報テキストを小さく */
+        margin: 5px 0;
+        line-height: 1.4;
+        width: 95%;
+    }
+    
+    /* ゲームオーバー/ステージクリア画面の表示調整 */
+    .game-over {
+        transform: translate(-50%, -50%) scale(0.8); /* 少し縮小して収める */
+        padding: 20px;
+        width: 80%;
+    }
+    .game-over h2 {
+        font-size: 1.8rem;
+    }
+    .game-over p {
+        font-size: 1rem;
+    }
+    .restart-btn {
+        font-size: 1rem;
+        padding: 10px 20px;
     }
 }
 
