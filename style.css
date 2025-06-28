@@ -13,7 +13,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
+    overflow: hidden; /* デフォルトはoverflow: hidden */
 }
 
 .game-container {
@@ -21,6 +21,10 @@ body {
     padding: 20px;
     max-width: 900px;
     width: 100%;
+    display: flex; /* 追加: flexboxで子要素を配置 */
+    flex-direction: column; /* 追加: 縦方向に並べる */
+    align-items: center; /* 追加: 中央揃え */
+    justify-content: center; /* 追加: 中央揃え */
 }
 
 .game-header {
@@ -29,6 +33,7 @@ body {
     align-items: center;
     margin-bottom: 20px;
     padding: 0 20px;
+    width: 100%; /* 幅を100%に */
 }
 
 .game-header h1 {
@@ -51,7 +56,8 @@ body {
     border-radius: 10px;
     box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
     max-width: 100%;
-    height: auto;
+    height: auto; /* 高さ自動調整 */
+    aspect-ratio: 2 / 1; /* 幅:高さ = 2:1 を維持 */
     display: block;
     margin: 0 auto;
 }
@@ -63,6 +69,7 @@ body {
     gap: 30px;
     margin: 20px 0;
     flex-wrap: wrap;
+    width: 100%; /* 幅を100%に */
 }
 
 .move-controls {
@@ -118,6 +125,7 @@ body {
     margin: 20px 0;
     font-size: 1rem;
     line-height: 1.6;
+    width: 100%; /* 幅を100%に */
 }
 
 .game-info p {
@@ -217,6 +225,7 @@ body {
     display: none;
 }
 
+
 /* スマホ全般の縦向き時の調整 (max-width: 768px を含む) */
 @media (max-width: 768px) {
     /* transform: scale(0.9) は削除しました */
@@ -225,6 +234,7 @@ body {
         flex-direction: column;
         gap: 10px;
         margin-bottom: 15px;
+        padding: 0 10px; /* パディングを調整 */
     }
     
     .game-header h1 {
@@ -238,7 +248,8 @@ body {
     #gameCanvas {
         width: 100%;
         max-width: 400px;
-        height: 200px; /* 縦向きの時のデフォルト高さを維持 */
+        height: auto; /* autoに変更 */
+        aspect-ratio: 2 / 1; /* アスペクト比を維持 */
     }
     
     .game-controls {
@@ -377,13 +388,16 @@ body {
     }
 }
 
-/* 縦画面（portrait）の場合のみメッセージを表示 */
+/* 縦画面（portrait）の場合のみメッセージを表示し、ゲームを隠す */
 @media screen and (orientation: portrait) and (max-width: 768px) {
     .rotate-message {
         display: flex; /* 縦画面でスマホの場合に表示 */
     }
     .game-container {
         display: none; /* 縦画面でスマホの場合、ゲームを隠す */
+    }
+    body {
+        overflow: hidden; /* 縦画面でスクロールバーが出ないように */
     }
 }
 
