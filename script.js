@@ -757,19 +757,22 @@ rightBtn.addEventListener('touchend', (e) => {
 
 // キャンバスリサイズ（レスポンシブ対応）
 function resizeCanvas() {
-    const container = canvas.parentElement;
-    const containerWidth = container.clientWidth;
-    
-    if (window.innerWidth <= 768) {
-        canvas.width = Math.min(400, containerWidth - 40);
+    // 画面の向きと幅によってキャンバスサイズを調整
+    if (window.innerWidth <= 768 && window.innerWidth > window.innerHeight) { // 横向きスマホの場合
+        // CSSのaspect-ratioに任せるため、幅のみ設定
+        canvas.width = Math.min(600, window.innerWidth * 0.95); // CSSのmax-width 600pxと合わせる
+        // heightはCSSのaspect-ratioが適用されることを期待するが、player.y の計算のためにJSでも設定
+        canvas.height = canvas.width / 2; // アスペクト比2:1に基づいて高さを設定
+    } else if (window.innerWidth <= 768) { // 縦向きスマホの場合 (ゲームは非表示だが、一応設定)
+        canvas.width = Math.min(400, window.innerWidth - 40);
         canvas.height = 200;
-    } else {
+    } else { // PCの場合
         canvas.width = 800;
         canvas.height = 400;
     }
     
     // プレイヤーの位置を再調整
-    player.y = canvas.height - 80;
+    player.y = canvas.height - 80; // 現在のcanvas.heightに基づいて調整
 }
 
 // 画面リサイズ時（回転時も含む）にチェック
