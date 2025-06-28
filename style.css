@@ -38,10 +38,11 @@ body {
 }
 
 .score {
-    font-size: 1.5rem;
+    font-size: 1.2rem; /* サイズを調整 */
     font-weight: bold;
     color: #ff6b6b;
     text-shadow: 0 0 10px #ff6b6b;
+    line-height: 1.4; /* 行の高さを調整 */
 }
 
 #gameCanvas {
@@ -150,6 +151,18 @@ body {
     margin-bottom: 30px;
     color: #00ffff;
 }
+
+/* ステージクリア画面用 */
+#stageClear {
+    border-color: #00ffff;
+    box-shadow: 0 0 50px rgba(0, 255, 255, 0.5);
+}
+
+#stageClear h2 {
+    color: #00ffff;
+    text-shadow: 0 0 20px #00ffff;
+}
+
 
 .restart-btn {
     background: linear-gradient(145deg, #00ffff, #0099cc);
