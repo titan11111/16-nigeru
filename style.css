@@ -187,10 +187,43 @@ body {
     display: none;
 }
 
+/* 画面回転を促すメッセージのスタイル */
+.rotate-message {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.95);
+    color: #00ffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8rem;
+    text-align: center;
+    z-index: 9999; /* 最前面に表示 */
+    backdrop-filter: blur(5px); /* 背景をぼかす */
+    text-shadow: 0 0 15px #00ffff;
+    line-height: 1.5;
+}
+
+.rotate-message p:first-child {
+    font-size: 2.5rem; /* メインメッセージを大きく */
+    margin-bottom: 10px;
+}
+
+.rotate-message.hidden {
+    display: none;
+}
+
 /* スマホ対応 */
 @media (max-width: 768px) {
     .game-container {
         padding: 10px;
+        /* 画面全体を少し縮小して、より多くの情報が見えるようにする */
+        transform: scale(0.9); 
+        transform-origin: center center; /* 中央を基準に拡大縮小 */
     }
     
     .game-header {
@@ -244,6 +277,16 @@ body {
     
     .game-over p {
         font-size: 1.2rem;
+    }
+}
+
+/* 縦画面（portrait）の場合のみメッセージを表示 */
+@media screen and (orientation: portrait) and (max-width: 768px) {
+    .rotate-message {
+        display: flex; /* 縦画面でスマホの場合に表示 */
+    }
+    .game-container {
+        display: none; /* 縦画面でスマホの場合、ゲームを隠す */
     }
 }
 
