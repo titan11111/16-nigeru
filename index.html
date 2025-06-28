@@ -10,7 +10,10 @@
     <div class="game-container">
         <div class="game-header">
             <h1>ロボットランナー</h1>
-            <div class="score">スコア: <span id="score">0</span></div>
+            <div class="score">
+                ステージ: <span id="currentStageDisplay">1</span> / 5<br>
+                スコア: <span id="score">0</span> / <span id="targetScoreDisplay">200</span>
+            </div>
         </div>
         
         <canvas id="gameCanvas" width="800" height="400"></canvas>
@@ -30,12 +33,20 @@
             <p>🤖 ロボットを操作して障害物を避けよう！</p>
             <p>💻 矢印キーで移動、スペースでジャンプ、↓でスライド</p>
             <p>📱 スマホでは画面のボタンをタップしてね</p>
+            <p>✨ サイバーチップを集めてスコアアップ！</p>
+            <p>💀 マルウェアは避けてね！</p>
         </div>
         
         <div id="gameOver" class="game-over hidden">
             <h2>ゲームオーバー</h2>
             <p>最終スコア: <span id="finalScore">0</span></p>
             <button id="restartBtn" class="restart-btn">もう一度プレイ</button>
+        </div>
+
+        <div id="stageClear" class="game-over hidden">
+            <h2>ステージクリア！</h2>
+            <p>スコア: <span id="stageClearScore">0</span></p>
+            <button id="nextStageBtn" class="restart-btn">次のステージへ</button>
         </div>
     </div>
     
