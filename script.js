@@ -27,16 +27,16 @@ let targetScore = 200;
 // ステージごとの設定
 const stageGoals = {
     1: { target: 200, obstacleChance: 0.02, itemChance: 0.0 }, // アイテムなし
-    2: { target: 500, obstacleChance: 0.025, itemChance: 0.015, newItem: ['cyberChip'] }, // サイバーチップ登場
-    3: { target: 1000, obstacleChance: 0.03, itemChance: 0.02, newItem: ['malware'] }, // マルウェア登場
-    4: { target: 2000, obstacleChance: 0.035, itemChance: 0.025, newItem: [] }, // 全種類出現
-    5: { target: 3500, obstacleChance: 0.04, itemChance: 0.03, newItem: [] } // 最高難易度
+    2: { target: 400, obstacleChance: 0.025, itemChance: 0.015, newItem: ['cyberChip'] }, // サイバーチップ登場
+    3: { target: 600, obstacleChance: 0.03, itemChance: 0.02, newItem: ['malware'] }, // マルウェア登場
+    4: { target: 800, obstacleChance: 0.035, itemChance: 0.025, newItem: [] }, // 全種類出現
+    5: { target: 1000, obstacleChance: 0.04, itemChance: 0.03, newItem: [] } // 最高難易度
 };
 
 // プレイヤー（ロボット）
 const player = {
     x: 100,
-    y: canvas.height - 80,
+    y: canvas.height - 80, // 初期位置はcanvasの高さに依存
     width: 40,
     height: 40,
     velocityY: 0,
@@ -74,7 +74,7 @@ malwareSound.volume = 0.7;
 
 
 // ゲーム初期化
-function initGame() {
+function initGame(startStage = 1) { // startStageパラメータを追加
     // 画面の向きが適切かチェック
     // 縦向きスマホならゲームを開始せずメッセージを表示
     if (window.innerWidth < window.innerHeight && window.innerWidth <= 768) {
@@ -84,15 +84,15 @@ function initGame() {
 
     gameRunning = true;
     score = 0;
-    currentStage = 1;
-    gameSpeed = 3; // ゲームスピードをリセット
+    currentStage = startStage; // 指定されたステージから開始
+    gameSpeed = 3 + (startStage - 1); // ステージに応じてゲームスピードを調整
     
-    // ステージ1の目標スコアを設定
+    // 現在のステージの目標スコアを設定
     targetScore = stageGoals[currentStage].target; 
 
     // プレイヤーリセット
     player.x = 100;
-    player.y = canvas.height - 80;
+    // player.yはresizeCanvasで適切に設定される
     player.velocityY = 0;
     player.velocityX = 0;
     player.jumping = false;
@@ -166,7 +166,7 @@ function generateBackgroundElements() {
         backgroundElements.push({
             type: 'building',
             x: i * 150,
-            y: Math.random() * 200 + 50,
+            y: Math.random() * (canvas.height * 0.5) + (canvas.height * 0.1), // Adjusted based on canvas height
             width: 80 + Math.random() * 40,
             height: 150 + Math.random() * 100,
             color: `hsl(${200 + Math.random() * 60}, 50%, ${20 + Math.random() * 30}%)`
@@ -242,11 +242,14 @@ function generateObstacle() {
     const obstacleChance = stageGoals[currentStage].obstacleChance;
     const itemChance = stageGoals[currentStage].itemChance;
 
+    // Y position for ground-based obstacles
+    const groundY = canvas.height - 60; // Base Y position for obstacles on the ground
+
     if (typeRoll < obstacleChance) {
         const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
         let obstacle = {};
         if (type === 'box') {
-            obstacle = { type: 'box', x: canvas.width, y: canvas.height - 60, width: 40, height: 40, color: '#ff6b6b' };
+            obstacle = { type: 'box', x: canvas.width, y: groundY, width: 40, height: 40, color: '#ff6b6b' };
         } else if (type === 'laser') {
             obstacle = { type: 'laser', x: canvas.width, y: canvas.height - 120, width: 60, height: 10, color: '#ff0000', glowIntensity: Math.random() * 20 + 10 };
         } else if (type === 'floating') {
@@ -466,7 +469,7 @@ function updatePlayer() {
         player.y += player.velocityY;
         
         // 地面に着地
-        if (player.y >= canvas.height - 80) {
+        if (player.y >= canvas.height - 80) { // Ensure player lands on the "ground"
             player.y = canvas.height - 80;
             player.jumping = false;
             player.velocityY = 0;
@@ -618,10 +621,14 @@ function gameOver(gameCleared = false) {
         gameOverElement.querySelector('h2').textContent = 'ゲームクリア！おめでとう！';
         gameOverElement.querySelector('p').textContent = '全ステージをクリアしました！素晴らしい！';
         restartBtn.textContent = '最初からプレイ';
+        // 全ステージクリア時はステージ1から開始
+        restartBtn.onclick = () => initGame(1);
     } else {
         gameOverElement.querySelector('h2').textContent = 'ゲームオーバー';
         gameOverElement.querySelector('p').textContent = `最終スコア: ${score}`;
         restartBtn.textContent = 'もう一度プレイ';
+        // ゲームオーバー時は現在のステージから開始
+        restartBtn.onclick = () => initGame(currentStage);
     }
     
     gameOverElement.classList.remove('hidden');
@@ -679,7 +686,7 @@ function checkOrientation() {
         // ゲームが停止していて、かつゲームオーバー/ステージクリア画面が表示されていなければゲームを再開
         // これにより、ゲームオーバー/ステージクリア後に回転した場合に勝手にゲームが始まらないようにする
         if (!gameRunning && gameOverElement.classList.contains('hidden') && stageClearElement.classList.contains('hidden')) {
-            initGame(); // ゲームを初期化して再開
+            initGame(currentStage); // 現在のステージからゲームを初期化して再開
         }
         // ゲームオーバー/ステージクリア画面が表示されている場合は、何もしない（画面を維持）
     }
@@ -710,12 +717,64 @@ document.addEventListener('keyup', (e) => {
     keys[e.key] = false;
 });
 
-// ボタンイベント
+// Button events for desktop (click)
 jumpBtn.addEventListener('click', jump);
 slideBtn.addEventListener('click', slide);
-restartBtn.addEventListener('click', initGame);
 
-// 移動ボタンイベント
+// restartBtnとnextStageBtnのイベントリスナーはgameOver関数内で設定するように変更
+// restartBtn.addEventListener('click', initGame); // この行は削除
+// nextStageBtn.addEventListener('click', () => { // このブロックは削除またはコメントアウト
+//     stageClearElement.classList.add('hidden');
+//     if (window.innerWidth >= window.innerHeight || window.innerWidth > 768) {
+//         gameRunning = true; 
+//         score = 0; 
+//         resetStageElements();
+//         updateScoreDisplay();
+//         bgm.play();
+//         gameLoop();
+//     } else {
+//         checkOrientation();
+//     }
+// });
+
+// Touch events (for mobile) - added e.preventDefault() to prevent default touch behaviors
+jumpBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Prevent default touch behavior (e.g., scrolling)
+    jump();
+});
+jumpBtn.addEventListener('touchend', (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+});
+
+
+slideBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    slide();
+});
+slideBtn.addEventListener('touchend', (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+});
+
+
+leftBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    moveLeft();
+});
+leftBtn.addEventListener('touchend', (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    stopMove();
+});
+
+rightBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    moveRight();
+});
+rightBtn.addEventListener('touchend', (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    stopMove();
+});
+
+// For desktop mouse controls (original behavior)
 leftBtn.addEventListener('mousedown', moveLeft);
 leftBtn.addEventListener('mouseup', stopMove);
 leftBtn.addEventListener('mouseleave', stopMove);
@@ -723,68 +782,50 @@ rightBtn.addEventListener('mousedown', moveRight);
 rightBtn.addEventListener('mouseup', stopMove);
 rightBtn.addEventListener('mouseleave', stopMove);
 
-// タッチイベント（スマホ対応）
-jumpBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    jump();
-});
-
-slideBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    slide();
-});
-
-leftBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    moveLeft();
-});
-
-leftBtn.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    stopMove();
-});
-
-rightBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    moveRight();
-});
-
-rightBtn.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    stopMove();
-});
 
 // キャンバスリサイズ（レスポンシブ対応）
 function resizeCanvas() {
-    // 画面の向きと幅によってキャンバスサイズを調整
-    if (window.innerWidth <= 768 && window.innerWidth > window.innerHeight) { // 横向きスマホの場合
-        // CSSのaspect-ratioに任せるため、幅のみ設定
-        canvas.width = Math.min(600, window.innerWidth * 0.95); // CSSのmax-width 600pxと合わせる
-        // heightはCSSのaspect-ratioが適用されることを期待するが、player.y の計算のためにJSでも設定
-        canvas.height = canvas.width / 2; // アスペクト比2:1に基づいて高さを設定
-    } else if (window.innerWidth <= 768) { // 縦向きスマホの場合 (ゲームは非表示だが、一応設定)
-        canvas.width = Math.min(400, window.innerWidth - 40);
-        canvas.height = 200;
-    } else { // PCの場合
-        canvas.width = 800;
-        canvas.height = 400;
-    }
+    // Get the computed style of the canvas to determine its displayed size
+    const computedStyle = getComputedStyle(canvas);
+    const displayedWidth = parseFloat(computedStyle.width);
+    const displayedHeight = parseFloat(computedStyle.height);
+
+    // Set the canvas's internal drawing buffer size to its displayed size
+    canvas.width = displayedWidth;
+    canvas.height = displayedHeight;
     
     // プレイヤーの位置を再調整
-    player.y = canvas.height - 80; // 現在のcanvas.heightに基づいて調整
+    // Ensure player is always on the ground relative to the current canvas height
+    player.y = canvas.height - 80; 
+    
+    // Regenerate background elements to match new canvas size if needed (optional, but good for visual consistency)
+    // You might want to clear existing elements and re-generate them
+    resetStageElements();
 }
 
 // 画面リサイズ時（回転時も含む）にチェック
 window.addEventListener('resize', () => {
     resizeCanvas();
     checkOrientation(); // 画面サイズ変更時にも向きをチェック
+    // When resizing, force redraw immediately
+    if (gameRunning) {
+        gameLoop(); 
+    } else if (gameOverElement.classList.contains('hidden') && stageClearElement.classList.contains('hidden')) {
+        // If game is not running but no overlay is shown, means it's paused or just loaded, redraw initial state
+        drawBackground();
+        drawPlayer();
+    }
 });
 
 // 初期ロード時にもチェック
 window.addEventListener('load', () => {
-    resizeCanvas();
-    checkOrientation(); // 初期ロード時にも向きをチェック
+    resizeCanvas(); // Ensure canvas is sized correctly on load
+    checkOrientation(); // Check orientation and start game or show message
+    // 初回ロード時にinitGameを呼び出すが、checkOrientationがすでに呼んでいるためコメントアウト
+    // initGame(); 
 });
 
-// 初期化（loadイベントでcheckOrientationが呼ばれるので、ここでは呼び出し不要）
-// initGame(); // この行は削除またはコメントアウト
+// ゲームの開始
+// ゲームオーバー/ステージクリア時のボタンクリックによってinitGameが呼び出されるようにするため、
+// ここでの直接的な呼び出しは削除
+// initGame();
