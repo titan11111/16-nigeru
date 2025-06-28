@@ -14,6 +14,7 @@ const rightBtn = document.getElementById('rightBtn');
 const stageClearElement = document.getElementById('stageClear');
 const stageClearScoreElement = document.getElementById('stageClearScore');
 const nextStageBtn = document.getElementById('nextStageBtn');
+const rotateDeviceMessage = document.getElementById('rotateDeviceMessage'); // 追加: 画面回転メッセージ要素
 
 // ゲーム変数
 let gameRunning = false;
@@ -74,6 +75,12 @@ malwareSound.volume = 0.7;
 
 // ゲーム初期化
 function initGame() {
+    // 画面の向きが適切かチェック
+    if (window.innerWidth < window.innerHeight && window.innerWidth <= 768) {
+        checkOrientation(); // 縦画面ならメッセージ表示してゲームを開始しない
+        return;
+    }
+
     gameRunning = true;
     score = 0;
     currentStage = 1;
@@ -116,13 +123,13 @@ function resetStageElements() {
 // ステージクリア時の処理
 function advanceStage() {
     if (currentStage < 5) {
-        gameRunning = false;
+        gameRunning = false; // ゲーム停止フラグを設定
         bgm.pause();
         bgm.currentTime = 0;
 
         stageClearScoreElement.textContent = score;
         stageClearElement.classList.remove('hidden');
-
+        
         currentStage++;
         targetScore = stageGoals[currentStage].target;
         gameSpeed += 1;
@@ -135,12 +142,18 @@ function advanceStage() {
 // 次のステージボタンのクリックイベント
 nextStageBtn.addEventListener('click', () => {
     stageClearElement.classList.add('hidden');
-    gameRunning = true;
-    score = 0;
-    resetStageElements();
-    updateScoreDisplay();
-    bgm.play();
-    gameLoop();
+    // 次のステージに進む際も、向きが正しければゲームを再開
+    if (window.innerWidth >= window.innerHeight || window.innerWidth > 768) { // 横画面またはPCの場合
+        gameRunning = true; // ゲーム再開
+        score = 0;
+        resetStageElements();
+        updateScoreDisplay();
+        bgm.play();
+        gameLoop();
+    } else {
+        // 縦画面の場合は、メッセージを表示してゲームは開始しない
+        checkOrientation();
+    }
 });
 
 
@@ -596,7 +609,7 @@ function updateScoreDisplay() {
 
 // ゲームオーバー
 function gameOver(gameCleared = false) {
-    gameRunning = false;
+    gameRunning = false; // ゲーム停止フラグを設定
     bgm.pause();
     bgm.currentTime = 0;
 
@@ -615,7 +628,11 @@ function gameOver(gameCleared = false) {
 
 // ゲームループ
 function gameLoop() {
-    if (!gameRunning) return;
+    if (!gameRunning) {
+        // ゲームが停止状態であれば、BGMも停止し、次のフレームを要求しない
+        bgm.pause();
+        return;
+    }
     
     // 画面クリア
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -648,6 +665,27 @@ function gameLoop() {
     // 次のフレーム
     requestAnimationFrame(gameLoop);
 }
+
+// 画面の向きをチェックする関数
+function checkOrientation() {
+    if (window.innerWidth < window.innerHeight && window.innerWidth <= 768) { // 縦画面かつスマホサイズ
+        rotateDeviceMessage.classList.remove('hidden');
+        gameRunning = false; // ゲームを一時停止
+        bgm.pause();
+    } else {
+        rotateDeviceMessage.classList.add('hidden');
+        // ゲームが停止していて、かつゲームオーバー/ステージクリア画面が表示されていなければゲームを再開
+        // これにより、ゲームオーバー/ステージクリア後に回転した場合に勝手にゲームが始まらないようにする
+        if (!gameRunning && gameOverElement.classList.contains('hidden') && stageClearElement.classList.contains('hidden')) {
+            initGame(); // ゲームを初期化して再開
+        } else if (!gameRunning && !gameOverElement.classList.contains('hidden')) {
+            // ゲームオーバー画面が表示されている場合は、ゲームを再開しない
+        } else if (!gameRunning && !stageClearElement.classList.contains('hidden')) {
+            // ステージクリア画面が表示されている場合は、ゲームを再開しない
+        }
+    }
+}
+
 
 // イベントリスナー
 document.addEventListener('keydown', (e) => {
@@ -734,9 +772,17 @@ function resizeCanvas() {
     player.y = canvas.height - 80;
 }
 
-// 画面リサイズ時の処理
-window.addEventListener('resize', resizeCanvas);
+// 画面リサイズ時（回転時も含む）にチェック
+window.addEventListener('resize', () => {
+    resizeCanvas();
+    checkOrientation(); // 画面サイズ変更時にも向きをチェック
+});
 
-// 初期化
-resizeCanvas();
-initGame();
+// 初期ロード時にもチェック
+window.addEventListener('load', () => {
+    resizeCanvas();
+    checkOrientation(); // 初期ロード時にも向きをチェック
+});
+
+// 初期化（loadイベントでcheckOrientationが呼ばれるので、ここでは呼び出し不要）
+// initGame(); // この行は削除またはコメントアウト
