@@ -2,6 +2,8 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score');
+const currentStageDisplay = document.getElementById('currentStageDisplay');
+const targetScoreDisplay = document.getElementById('targetScoreDisplay');
 const gameOverElement = document.getElementById('gameOver');
 const finalScoreElement = document.getElementById('finalScore');
 const restartBtn = document.getElementById('restartBtn');
@@ -9,12 +11,26 @@ const jumpBtn = document.getElementById('jumpBtn');
 const slideBtn = document.getElementById('slideBtn');
 const leftBtn = document.getElementById('leftBtn');
 const rightBtn = document.getElementById('rightBtn');
+const stageClearElement = document.getElementById('stageClear');
+const stageClearScoreElement = document.getElementById('stageClearScore');
+const nextStageBtn = document.getElementById('nextStageBtn');
 
 // ゲーム変数
 let gameRunning = false;
 let score = 0;
 let gameSpeed = 3;
 let keys = {};
+let currentStage = 1;
+let targetScore = 200;
+
+// ステージごとの設定
+const stageGoals = {
+    1: { target: 200, obstacleChance: 0.02, itemChance: 0.0 }, // アイテムなし
+    2: { target: 500, obstacleChance: 0.025, itemChance: 0.015, newItem: ['cyberChip'] }, // サイバーチップ登場
+    3: { target: 1000, obstacleChance: 0.03, itemChance: 0.02, newItem: ['malware'] }, // マルウェア登場
+    4: { target: 2000, obstacleChance: 0.035, itemChance: 0.025, newItem: [] }, // 全種類出現
+    5: { target: 3500, obstacleChance: 0.04, itemChance: 0.03, newItem: [] } // 最高難易度
+};
 
 // プレイヤー（ロボット）
 const player = {
@@ -43,22 +59,28 @@ let particles = [];
 
 // サウンド要素の作成
 const bgm = new Audio('audio/run.mp3');
-bgm.loop = true; // BGMをループ再生
-bgm.volume = 0.5; // BGMの音量を調整
+bgm.loop = true;
+bgm.volume = 0.5;
 
 const jumpSound = new Audio('audio/tobu.mp3');
-jumpSound.volume = 0.7; // ジャンプ効果音の音量を調整
+jumpSound.volume = 0.7;
+
+const pickupSound = new Audio('audio/pickup.mp3');
+pickupSound.volume = 0.7;
+
+const malwareSound = new Audio('audio/malware.mp3');
+malwareSound.volume = 0.7;
 
 
 // ゲーム初期化
 function initGame() {
     gameRunning = true;
     score = 0;
-    gameSpeed = 3;
-    obstacles = [];
-    particles = [];
-    backgroundElements = [];
+    currentStage = 1;
     
+    // ステージ1の目標スコアを設定
+    targetScore = stageGoals[currentStage].target; 
+
     // プレイヤーリセット
     player.x = 100;
     player.y = canvas.height - 80;
@@ -67,18 +89,60 @@ function initGame() {
     player.jumping = false;
     player.sliding = false;
     
-    // 背景要素を生成
-    generateBackgroundElements();
+    resetStageElements();
     
-    // ゲームオーバー画面を隠す
+    // ゲームオーバー画面、ステージクリア画面を隠す
     gameOverElement.classList.add('hidden');
+    stageClearElement.classList.add('hidden');
     
     // BGM再生開始
     bgm.play();
 
+    // スコアとステージ表示を更新
+    updateScoreDisplay();
+
     // ゲームループ開始
     gameLoop();
 }
+
+// ステージ要素のリセット（障害物、背景要素、パーティクル）
+function resetStageElements() {
+    obstacles = [];
+    particles = [];
+    backgroundElements = [];
+    generateBackgroundElements();
+}
+
+// ステージクリア時の処理
+function advanceStage() {
+    if (currentStage < 5) {
+        gameRunning = false;
+        bgm.pause();
+        bgm.currentTime = 0;
+
+        stageClearScoreElement.textContent = score;
+        stageClearElement.classList.remove('hidden');
+
+        currentStage++;
+        targetScore = stageGoals[currentStage].target;
+        gameSpeed += 1;
+        
+    } else {
+        gameOver(true);
+    }
+}
+
+// 次のステージボタンのクリックイベント
+nextStageBtn.addEventListener('click', () => {
+    stageClearElement.classList.add('hidden');
+    gameRunning = true;
+    score = 0;
+    resetStageElements();
+    updateScoreDisplay();
+    bgm.play();
+    gameLoop();
+});
+
 
 // 背景要素生成
 function generateBackgroundElements() {
@@ -150,55 +214,46 @@ function drawPlayer() {
     ctx.restore();
 }
 
-// 障害物生成
+// 障害物・アイテム生成
 function generateObstacle() {
-    const types = ['box', 'laser', 'floating', 'wide'];
-    const type = types[Math.floor(Math.random() * types.length)];
+    const obstacleTypes = ['box', 'laser', 'floating', 'wide'];
+    const currentObstacleTypes = obstacleTypes;
     
-    if (type === 'box') {
-        obstacles.push({
-            type: 'box',
-            x: canvas.width,
-            y: canvas.height - 60,
-            width: 40,
-            height: 40,
-            color: '#ff6b6b'
-        });
-    } else if (type === 'laser') {
-        obstacles.push({
-            type: 'laser',
-            x: canvas.width,
-            y: canvas.height - 120,
-            width: 60,
-            height: 10,
-            color: '#ff0000',
-            glowIntensity: Math.random() * 20 + 10
-        });
-    } else if (type === 'floating') {
-        // 浮いている障害物（ジャンプでは避けられない）
-        obstacles.push({
-            type: 'floating',
-            x: canvas.width,
-            y: canvas.height - 160,
-            width: 80,
-            height: 30,
-            color: '#ff9900',
-            glowIntensity: 15
-        });
-    } else if (type === 'wide') {
-        // 幅広い障害物（左右移動が必要）
-        obstacles.push({
-            type: 'wide',
-            x: canvas.width,
-            y: canvas.height - 100,
-            width: 120,
-            height: 80,
-            color: '#ff0066'
-        });
+    // 現在のステージで追加されるアイテムの種類を取得
+    const newItems = stageGoals[currentStage].newItem || [];
+    const itemTypes = ['cyberChip', 'malware'].filter(type => newItems.includes(type));
+
+    // 障害物かアイテムかランダムに決定
+    const typeRoll = Math.random();
+    const obstacleChance = stageGoals[currentStage].obstacleChance;
+    const itemChance = stageGoals[currentStage].itemChance;
+
+    if (typeRoll < obstacleChance) {
+        const type = currentObstacleTypes[Math.floor(Math.random() * currentObstacleTypes.length)];
+        let obstacle = {};
+        if (type === 'box') {
+            obstacle = { type: 'box', x: canvas.width, y: canvas.height - 60, width: 40, height: 40, color: '#ff6b6b' };
+        } else if (type === 'laser') {
+            obstacle = { type: 'laser', x: canvas.width, y: canvas.height - 120, width: 60, height: 10, color: '#ff0000', glowIntensity: Math.random() * 20 + 10 };
+        } else if (type === 'floating') {
+            obstacle = { type: 'floating', x: canvas.width, y: canvas.height - 160, width: 80, height: 30, color: '#ff9900', glowIntensity: 15 };
+        } else if (type === 'wide') {
+            obstacle = { type: 'wide', x: canvas.width, y: canvas.height - 100, width: 120, height: 80, color: '#ff0066' };
+        }
+        obstacles.push(obstacle);
+    } else if (typeRoll < obstacleChance + itemChance && itemTypes.length > 0) {
+        const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+        let item = {};
+        if (itemType === 'cyberChip') {
+            item = { type: 'cyberChip', x: canvas.width, y: canvas.height - 100 - Math.random() * 50, size: 20, color: '#00ccff', value: 50 };
+        } else if (itemType === 'malware') {
+            item = { type: 'malware', x: canvas.width, y: canvas.height - 100 - Math.random() * 50, size: 25, color: '#ff00ff', value: -100 };
+        }
+        obstacles.push(item);
     }
 }
 
-// 障害物描画
+// 障害物・アイテム描画
 function drawObstacles() {
     obstacles.forEach(obstacle => {
         ctx.save();
@@ -248,6 +303,39 @@ function drawObstacles() {
             ctx.font = '20px Arial';
             ctx.textAlign = 'center';
             ctx.fillText('⚠', obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2 + 7);
+        } else if (obstacle.type === 'cyberChip') {
+            // サイバーチップ (ボーナスアイテム)
+            ctx.shadowColor = obstacle.color;
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = obstacle.color;
+            ctx.beginPath();
+            ctx.arc(obstacle.x + obstacle.size / 2, obstacle.y + obstacle.size / 2, obstacle.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 光るエフェクト
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.beginPath();
+            ctx.arc(obstacle.x + obstacle.size / 2, obstacle.y + obstacle.size / 2, obstacle.size / 4, 0, Math.PI * 2);
+            ctx.fill();
+
+        } else if (obstacle.type === 'malware') {
+            // マルウェア (トラップアイテム)
+            ctx.shadowColor = obstacle.color;
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = obstacle.color;
+            ctx.beginPath();
+            ctx.moveTo(obstacle.x + obstacle.size / 2, obstacle.y);
+            ctx.lineTo(obstacle.x + obstacle.size, obstacle.y + obstacle.size / 2);
+            ctx.lineTo(obstacle.x + obstacle.size / 2, obstacle.y + obstacle.size);
+            ctx.lineTo(obstacle.x, obstacle.y + obstacle.size / 2);
+            ctx.closePath();
+            ctx.fill();
+
+            // 警告マーク
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('X', obstacle.x + obstacle.size / 2, obstacle.y + obstacle.size / 2 + 6);
         }
         
         ctx.restore();
@@ -360,7 +448,7 @@ function updatePlayer() {
     
     // 重力
     if (player.jumping) {
-        player.velocityY += 0.8;
+        player.velocityY += 0.2; // 変更: 落下速度（重力加速度）を0.2に
         player.y += player.velocityY;
         
         // 地面に着地
@@ -372,21 +460,24 @@ function updatePlayer() {
     }
 }
 
-// 障害物更新
+// 障害物・アイテム更新
 function updateObstacles() {
     // 障害物移動
     obstacles.forEach((obstacle, index) => {
         obstacle.x -= gameSpeed;
         
         // 画面外の障害物を削除
-        if (obstacle.x + obstacle.width < 0) {
+        if (obstacle.x + (obstacle.width || obstacle.size) < 0) {
             obstacles.splice(index, 1);
-            score += 10;
+            // スコアは障害物を避けたときのみ加算
+            if (obstacle.type !== 'cyberChip' && obstacle.type !== 'malware') {
+                score += 10;
+            }
         }
     });
     
-    // 新しい障害物生成
-    if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - 200) {
+    // 新しい障害物・アイテム生成
+    if (obstacles.length < 5 && (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - 150 - Math.random() * 100)) {
         generateObstacle();
     }
 }
@@ -417,12 +508,47 @@ function checkCollision() {
         height: player.sliding ? 25 : player.height
     };
     
-    obstacles.forEach(obstacle => {
-        if (playerRect.x < obstacle.x + obstacle.width &&
-            playerRect.x + playerRect.width > obstacle.x &&
-            playerRect.y < obstacle.y + obstacle.height &&
-            playerRect.y + playerRect.height > obstacle.y) {
-            gameOver();
+    obstacles.forEach((obstacle, index) => {
+        let obstacleRect = {};
+
+        if (obstacle.type === 'box' || obstacle.type === 'laser' || obstacle.type === 'floating' || obstacle.type === 'wide') {
+            obstacleRect = {
+                x: obstacle.x,
+                y: obstacle.y,
+                width: obstacle.width,
+                height: obstacle.height
+            };
+        } else if (obstacle.type === 'cyberChip' || obstacle.type === 'malware') {
+            obstacleRect = {
+                x: obstacle.x,
+                y: obstacle.y,
+                width: obstacle.size,
+                height: obstacle.size
+            };
+        }
+
+        if (playerRect.x < obstacleRect.x + obstacleRect.width &&
+            playerRect.x + playerRect.width > obstacleRect.x &&
+            playerRect.y < obstacleRect.y + obstacleRect.height &&
+            playerRect.y + playerRect.height > obstacleRect.y) {
+            
+            // 障害物との衝突
+            if (obstacle.type === 'box' || obstacle.type === 'laser' || obstacle.type === 'floating' || obstacle.type === 'wide') {
+                gameOver(false);
+            } 
+            // アイテムとの衝突
+            else if (obstacle.type === 'cyberChip') {
+                score += obstacle.value;
+                pickupSound.currentTime = 0;
+                pickupSound.play();
+                obstacles.splice(index, 1);
+            } else if (obstacle.type === 'malware') {
+                score += obstacle.value;
+                malwareSound.currentTime = 0;
+                malwareSound.play();
+                if (score < 0) score = 0;
+                obstacles.splice(index, 1);
+            }
         }
     });
 }
@@ -445,8 +571,8 @@ function stopMove() {
 function jump() {
     if (!player.jumping && !player.sliding) {
         player.jumping = true;
-        player.velocityY = -15;
-        jumpSound.currentTime = 0; // 効果音を最初から再生
+        player.velocityY = -9; // 変更: ジャンプスピードを0.6倍（-9）に
+        jumpSound.currentTime = 0;
         jumpSound.play();
     }
 }
@@ -461,13 +587,30 @@ function slide() {
     }
 }
 
+// スコアとステージ表示を更新
+function updateScoreDisplay() {
+    scoreElement.textContent = score;
+    currentStageDisplay.textContent = currentStage;
+    targetScoreDisplay.textContent = targetScore;
+}
+
 // ゲームオーバー
-function gameOver() {
+function gameOver(gameCleared = false) {
     gameRunning = false;
-    finalScoreElement.textContent = score;
+    bgm.pause();
+    bgm.currentTime = 0;
+
+    if (gameCleared) {
+        gameOverElement.querySelector('h2').textContent = 'ゲームクリア！おめでとう！';
+        gameOverElement.querySelector('p').textContent = '全ステージをクリアしました！素晴らしい！';
+        restartBtn.textContent = '最初からプレイ';
+    } else {
+        gameOverElement.querySelector('h2').textContent = 'ゲームオーバー';
+        gameOverElement.querySelector('p').textContent = `最終スコア: ${score}`;
+        restartBtn.textContent = 'もう一度プレイ';
+    }
+    
     gameOverElement.classList.remove('hidden');
-    bgm.pause(); // BGMを停止
-    bgm.currentTime = 0; // BGMを最初に戻す
 }
 
 // ゲームループ
@@ -489,13 +632,17 @@ function gameLoop() {
     // 衝突判定
     checkCollision();
     
-    // スコア更新
-    score += 1;
-    scoreElement.textContent = score;
+    // スコア表示を更新
+    updateScoreDisplay();
     
-    // ゲームスピード上昇
-    if (score % 500 === 0) {
-        gameSpeed += 0.5;
+    // ステージクリア判定
+    if (score >= targetScore && currentStage <= 5) {
+        if (currentStage === 5) {
+            gameOver(true);
+        } else {
+            advanceStage();
+        }
+        return;
     }
     
     // 次のフレーム
